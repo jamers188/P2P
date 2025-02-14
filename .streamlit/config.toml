@@ -1,9 +1,0 @@
-[theme]
-primaryColor = "#593CFB"
-backgroundColor = "#F8F9FA"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1A1A1A"
-font = "sans serif"
-
-[server]
-enableCORS = false
