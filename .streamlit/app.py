@@ -1,16 +1,27 @@
-import streamlit as st
 import datetime
 from PIL import Image
-import json
+from db_utils import DBHandler
+from car_data import cars
+from styles import CUSTOM_CSS
+
+# Initialize database handler
+db = DBHandler()
 
 # Configure the page
-st.set_page_config(page_title="Luxury Car Rentals", layout="wide")
+st.set_page_config(
+    page_title="Luxury Car Rentals",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Initialize all session state variables
+# Apply custom CSS
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+# Initialize session state
 if 'page' not in st.session_state:
     st.session_state.page = 'welcome'
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = None
 if 'selected_car' not in st.session_state:
     st.session_state.selected_car = None
 if 'booking_details' not in st.session_state:
@@ -18,165 +29,152 @@ if 'booking_details' not in st.session_state:
 if 'category' not in st.session_state:
     st.session_state.category = None
 
-# Custom CSS for styling
-st.markdown("""
-    <style>
-    /* Main container */
-    .main > div {
-        padding: 2rem 3rem;
-    }
+def create_navbar():
+    col1, col2, col3 = st.columns([2,8,2])
+    with col1:
+        st.markdown("""
+            <div style='padding-top: 1rem;'>
+                <h3>Luxury Cars</h3>
+            </div>
+        """, unsafe_allow_html=True)
     
-    /* Headers */
-    h1, h2, h3 {
-        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-weight: 600;
-    }
-    
-    /* Buttons */
-    .stButton>button {
-        background-color: #593CFB;
-        color: white;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        width: 100%;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-    .stButton>button:hover {
-        background-color: #4930E3;
-    }
-    
-    /* Input fields */
-    .stTextInput>div>div>input, .stDateInput>div>div>input {
-        border-radius: 8px;
-        border: 1px solid #E5E7EB;
-        padding: 0.75rem;
-        background-color: white;
-    }
-    
-    /* Cards */
-    .car-card {
-        background-color: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        border: 1px solid #E5E7EB;
-        margin-bottom: 1rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Sample car data
-cars = {
-    'Lamborghini Urus': {
-        'price': 2500,
-        'location': 'Dubai Marina',
-        'category': 'Luxury',
-        'available': True,
-        'description': 'Ultra-luxury SUV with supercar performance',
-        'specs': {'Power': '650 HP', 'Speed': '0-60 mph in 3.6s', 'Seats': '5'}
-    },
-    'Range Rover Sport': {
-        'price': 1800,
-        'location': 'Dubai Marina',
-        'category': 'SUV',
-        'available': True,
-        'description': 'Luxury SUV combining comfort and capability',
-        'specs': {'Power': '523 HP', 'Speed': '0-60 mph in 4.3s', 'Seats': '5'}
-    },
-    'Ferrari F8': {
-        'price': 3000,
-        'location': 'Dubai Marina',
-        'category': 'Sports',
-        'available': True,
-        'description': 'Mid-engine sports car with incredible performance',
-        'specs': {'Power': '710 HP', 'Speed': '0-60 mph in 2.9s', 'Seats': '2'}
-    }
-}
+    with col3:
+        if st.session_state.user_email:
+            user = db.get_user(st.session_state.user_email)
+            st.markdown(f"""
+                <div style='text-align: right;'>
+                    <p>Welcome, {user['name']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button("Logout"):
+                st.session_state.user_email = None
+                st.session_state.page = 'welcome'
+                st.rerun()
+        else:
+            if st.button("Login"):
+                st.session_state.page = 'login'
+                st.rerun()
 
 def welcome_page():
-    st.markdown("<h1 style='text-align: center;'>Luxury Car Rentals</h1>", unsafe_allow_html=True)
-    st.write("")
+    st.markdown("""
+        <div style='text-align: center; padding: 4rem 0;'>
+            <h1 style='font-size: 3.5rem; margin-bottom: 1rem;'>Luxury Car Rentals</h1>
+            <p style='font-size: 1.25rem; color: #666; margin-bottom: 3rem;'>
+                Experience the finest automobiles Dubai has to offer
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    # Featured cars
+    st.markdown("<h2>Featured Vehicles</h2>", unsafe_allow_html=True)
+    cols = st.columns(3)
+    for idx, (car, details) in enumerate(list(cars.items())[:3]):
+        with cols[idx]:
+            st.markdown(f"""
+                <div class='car-card'>
+                    <img src='{details["image"]}' style='width: 100%; height: 200px; object-fit: cover; border-radius: 8px;'>
+                    <h3 style='margin: 1rem 0;'>{car}</h3>
+                    <p style='color: #666;'>{details["location"]}</p>
+                    <p style='font-size: 1.25rem; font-weight: 600;'>AED {details["price"]}/day</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("View Details", key=f"view_{idx}"):
+                if st.session_state.user_email:
+                    st.session_state.selected_car = car
+                    st.session_state.page = 'car_details'
+                else:
+                    st.session_state.page = 'login'
+                st.rerun()
+
+def login_page():
+    col1, col2, col3 = st.columns([1,2,1])
+    
     with col2:
-        if st.button("Login", key="login_main"):
-            st.session_state.page = 'login'
-            st.rerun()
-        st.write("")
-        if st.button("Create Account", key="signup_main"):
+        st.markdown("""
+            <div class='auth-form'>
+                <h1 style='text-align: center; margin-bottom: 2rem;'>Welcome Back</h1>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            
+            if st.form_submit_button("Login", use_container_width=True):
+                if db.verify_login(email, password):
+                    st.session_state.user_email = email
+                    st.session_state.page = 'browse_cars'
+                    st.rerun()
+                else:
+                    st.error("Invalid email or password")
+        
+        st.markdown("""
+            <div style='text-align: center; margin-top: 1rem;'>
+                <p>Don't have an account?</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Create Account", use_container_width=True):
             st.session_state.page = 'signup'
             st.rerun()
 
-def login_page():
-    st.title("Welcome Back")
-    email = st.text_input("Email/Phone")
-    password = st.text_input("Password", type="password")
-    st.write("")
-    
-    if st.button("Login", key="login_submit"):
-        st.session_state.logged_in = True
-        st.session_state.page = 'browse_cars'
-        st.rerun()
-    
-    st.write("")
-    if st.button("Forgot Password?", key="forgot_pwd"):
-        st.session_state.page = 'reset_password'
-        st.rerun()
-
 def signup_page():
-    st.title("Create Account")
-    full_name = st.text_input("Full Name")
-    email = st.text_input("Email")
-    phone = st.text_input("Phone Number")
-    password = st.text_input("Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
+    col1, col2, col3 = st.columns([1,2,1])
     
-    if st.button("Create Account"):
-        if password == confirm_password:
-            st.success("Account created successfully!")
-            st.session_state.logged_in = True
-            st.session_state.page = 'browse_cars'
-            st.rerun()
-        else:
-            st.error("Passwords don't match!")
-
-def reset_password_page():
-    st.title("Reset Password")
-    st.write("Enter your email to reset password")
-    email = st.text_input("Email Address")
-    
-    if st.button("Send Reset Link"):
-        st.success("Check your email for password reset instructions")
-        st.session_state.page = 'login'
-        st.rerun()
+    with col2:
+        st.markdown("""
+            <div class='auth-form'>
+                <h1 style='text-align: center; margin-bottom: 2rem;'>Create Account</h1>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("signup_form"):
+            name = st.text_input("Full Name")
+            email = st.text_input("Email")
+            phone = st.text_input("Phone Number")
+            password = st.text_input("Password", type="password")
+            confirm_password = st.text_input("Confirm Password", type="password")
+            
+            if st.form_submit_button("Create Account", use_container_width=True):
+                if password != confirm_password:
+                    st.error("Passwords don't match!")
+                elif not name or not email or not phone:
+                    st.error("Please fill in all fields")
+                else:
+                    db.add_user(email, password, name, phone)
+                    st.session_state.user_email = email
+                    st.session_state.page = 'browse_cars'
+                    st.rerun()
 
 def browse_cars_page():
-    st.title("Browse Cars")
-    search = st.text_input("Search (e.g., 'Lamborghini')")
+    st.markdown("<h1>Find your perfect ride</h1>", unsafe_allow_html=True)
     
-    # Category filters
-    cols = st.columns(4)
-    with cols[0]:
-        if st.button("All"):
-            st.session_state.category = None
-            st.rerun()
-    with cols[1]:
-        if st.button("Luxury"):
-            st.session_state.category = 'Luxury'
-            st.rerun()
-    with cols[2]:
-        if st.button("SUV"):
-            st.session_state.category = 'SUV'
-            st.rerun()
-    with cols[3]:
-        if st.button("Sports"):
-            st.session_state.category = 'Sports'
-            st.rerun()
-    
-    st.write("---")
+    # Search and filters
+    with st.container():
+        st.markdown("<div class='search-container'>", unsafe_allow_html=True)
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            search = st.text_input("Search cars", placeholder="e.g., 'Lamborghini'")
+        
+        # Category filters
+        st.markdown("<div style='margin-top: 1rem;'>", unsafe_allow_html=True)
+        cols = st.columns(4)
+        categories = ['All', 'Luxury', 'SUV', 'Sports']
+        for idx, category in enumerate(categories):
+            with cols[idx]:
+                if st.button(
+                    category,
+                    key=f"cat_{category}",
+                    use_container_width=True,
+                    type="secondary" if st.session_state.category != category else "primary"
+                ):
+                    st.session_state.category = category if category != 'All' else None
+                    st.rerun()
+        st.markdown("</div></div>", unsafe_allow_html=True)
     
     # Car listings
+    st.write("")
     car_cols = st.columns(3)
     col_idx = 0
     
@@ -189,18 +187,24 @@ def browse_cars_page():
             
         if show_car and details['available']:
             with car_cols[col_idx % 3]:
-                with st.container():
-                    st.markdown(f"""
-                        <div class='car-card'>
-                            <h3>{car}</h3>
-                            <p style='color: #666;'>{details['location']}</p>
-                            <p style='font-size: 1.2rem; font-weight: 600;'>AED {details['price']}/day</p>
+                st.markdown(f"""
+                    <div class='car-card'>
+                        <img src='{details["image"]}' 
+                             style='width: 100%; height: 200px; object-fit: cover; border-radius: 8px;'>
+                        <h3 style='margin: 1rem 0;'>{car}</h3>
+                        <p style='color: #666;'>{details["location"]}</p>
+                        <p style='font-size: 1.25rem; font-weight: 600;'>AED {details["price"]}/day</p>
+                        <p style='color: #666; margin: 0.5rem 0;'>{details["description"][:100]}...</p>
+                        <div style='margin-top: 1rem;'>
+                            <span class='category-pill'>{details["category"]}</span>
                         </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(f"Select {car}", key=f"select_{car}"):
-                        st.session_state.selected_car = car
-                        st.session_state.page = 'car_details'
-                        st.rerun()
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("View Details", key=f"select_{car}", use_container_width=True):
+                    st.session_state.selected_car = car
+                    st.session_state.page = 'car_details'
+                    st.rerun()
             col_idx += 1
 
 def car_details_page():
@@ -211,28 +215,41 @@ def car_details_page():
     car = st.session_state.selected_car
     details = cars[car]
     
-    st.title(car)
-    
+    # Main content
     col1, col2 = st.columns([2, 1])
     
     with col1:
         st.markdown(f"""
             <div class='car-card'>
+                <img src='{details["image"]}' 
+                     style='width: 100%; height: 400px; object-fit: cover; border-radius: 8px;'>
+                <h1 style='margin: 1rem 0;'>{car}</h1>
+                <p style='color: #666; margin-bottom: 2rem;'>{details["description"]}</p>
+                
                 <h3>Specifications</h3>
-                {''.join(f"<p><strong>{k}:</strong> {v}</p>" for k, v in details['specs'].items())}
+                <div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1rem 0;'>
+                    {''.join(f"<div><strong>{k}:</strong> {v}</div>" for k, v in details['specs'].items())}
+                </div>
+                
+                <h3>Features</h3>
+                <ul style='columns: 2; margin: 1rem 0;'>
+                    {''.join(f"<li>{feature}</li>" for feature in details['features'])}
+                </ul>
             </div>
         """, unsafe_allow_html=True)
-        
+    
     with col2:
         st.markdown(f"""
             <div class='car-card'>
-                <h3>Price</h3>
-                <p style='font-size: 1.5rem; font-weight: 600;'>AED {details['price']}/day</p>
-                <p>{details['location']}</p>
+                <h2>Rental Details</h2>
+                <p style='font-size: 2rem; font-weight: 600; margin: 1rem 0;'>
+                    AED {details["price"]}<span style='font-size: 1rem; font-weight: normal;'>/day</span>
+                </p>
+                <p style='color: #666;'>{details["location"]}</p>
             </div>
         """, unsafe_allow_html=True)
         
-        if st.button("Book Now", key="book_now"):
+        if st.button("Book Now", use_container_width=True):
             st.session_state.page = 'booking'
             st.rerun()
 
@@ -244,33 +261,44 @@ def booking_page():
     car = st.session_state.selected_car
     details = cars[car]
     
-    st.title(f"Book {car}")
+    st.markdown(f"<h1>Book {car}</h1>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        pickup_date = st.date_input("Pick-up Date")
-        pickup_time = st.time_input("Pick-up Time")
-    with col2:
-        return_date = st.date_input("Return Date")
-        return_time = st.time_input("Return Time")
-    
-    location = st.selectbox("Location", ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah"])
-    payment_method = st.selectbox("Payment Method", ["Credit Card", "Debit Card"])
-    
-    if st.button("Confirm Booking"):
-        days = (return_date - pickup_date).days
-        if days < 1:
-            st.error("Return date must be after pickup date")
-        else:
-            total = days * details['price']
-            st.session_state.booking_details = {
-                'car': car,
-                'date': pickup_date.strftime("%b %d, %Y"),
-                'location': location,
-                'total': total
-            }
-            st.session_state.page = 'confirmation'
-            st.rerun()
+    with st.form("booking_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            pickup_date = st.date_input("Pick-up Date", min_value=datetime.date.today())
+            pickup_time = st.time_input("Pick-up Time")
+        with col2:
+            return_date = st.date_input("Return Date", min_value=pickup_date)
+            return_time = st.time_input("Return Time")
+        
+        location = st.selectbox("Pick-up Location", ["Dubai Marina", "Downtown Dubai", "Palm Jumeirah"])
+        
+        st.markdown("<h3>Payment Details</h3>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            card_number = st.text_input("Card Number")
+        with col2:
+            cvv = st.text_input("CVV", type="password")
+        
+        if st.form_submit_button("Confirm Booking", use_container_width=True):
+            days = (return_date - pickup_date).days
+            if days < 1:
+                st.error("Return date must be after pickup date")
+            else:
+                total = days * details['price']
+                booking_details = {
+                    'car': car,
+                    'pickup_date': pickup_date.strftime("%b %d, %Y"),
+                    'return_date': return_date.strftime("%b %d, %Y"),
+                    'location': location,
+                    'total': total,
+                    'status': 'confirmed'
+                }
+                db.add_booking(st.session_state.user_email, booking_details)
+                st.session_state.booking_details = booking_details
+                st.session_state.page = 'confirmation'
+                st.rerun()
 
 def confirmation_page():
     if not st.session_state.booking_details:
@@ -279,30 +307,44 @@ def confirmation_page():
         
     details = st.session_state.booking_details
     
-    st.success("🎉 Booking Confirmed!")
-    
-    st.markdown(f"""
-        <div class='car-card'>
-            <h2>Booking Summary:</h2>
-            <p><strong>Car:</strong> {details['car']}</p>
-            <p><strong>Date:</strong> {details['date']}</p>
-            <p><strong>Location:</strong> {details['location']}</p>
-            <p><strong>Total:</strong> AED {details['total']}</p>
+    st.markdown("""
+        <div style='text-align: center; padding: 3rem;'>
+            <div style='background-color: #DEF7EC; width: 80px; height: 80px; border-radius: 40px; 
+                      margin: 0 auto; display: flex; align-items: center; justify-content: center;'>
+                <span style='font-size: 2rem;'>✓</span>
+            </div>
+            <h1 style='margin: 2rem 0;'>Booking Confirmed!</h1>
         </div>
     """, unsafe_allow_html=True)
     
-    if st.button("Book Another Car"):
-        st.session_state.page = 'browse_cars'
-        st.session_state.selected_car = None
-        st.session_state.booking_details = None
-        st.rerun()
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.markdown(f"""
+            <div class='booking-summary'>
+                <h2>Booking Summary</h2>
+                <div style='margin: 2rem 0;'>
+                    <p><strong>Car:</strong> {details['car']}</p>
+                    <p><strong>Pick-up Date:</strong> {details['pickup_date']}</p>
+                    <p><strong>Return Date:</strong> {details['return_date']}</p>
+                    <p><strong>Location:</strong> {details['location']}</p>
+                    <p><strong>Total:</strong> AED {details['total']}</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Book Another Car", use_container_width=True):
+            st.session_state.page = 'browse_cars'
+            st.session_state.selected_car = None
+            st.session_state.booking_details = None
+            st.rerun()
 
 def main():
+    create_navbar()
+    
     pages = {
         'welcome': welcome_page,
         'login': login_page,
         'signup': signup_page,
-        'reset_password': reset_password_page,
         'browse_cars': browse_cars_page,
         'car_details': car_details_page,
         'booking': booking_page,
@@ -314,4 +356,4 @@ def main():
         pages[current_page]()
 
 if __name__ == "__main__":
-    main()
+    main()import streamlit as st
