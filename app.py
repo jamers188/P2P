@@ -1,4 +1,10 @@
 import streamlit as st
+
+st.title("Hello World")
+st.write("Testing deployment...")
+
+
+'''import streamlit as st
 import datetime
 from PIL import Image
 from db_utils import DBHandler
@@ -357,4 +363,4 @@ def main():
         pages[current_page]()
 
 if __name__ == "__main__":
-    main()
+    main()''''
