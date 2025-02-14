@@ -1,8 +1,11 @@
 import streamlit as st
 
-st.title("Hello World")
-st.write("Testing deployment...")
+def main():
+    st.title("Test App")
+    st.write("Testing deployment...")
 
+if __name__ == "__main__":
+    main()
 
 '''import streamlit as st
 import datetime
