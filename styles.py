@@ -46,19 +46,21 @@ CUSTOM_CSS = """
         transform: translateY(-1px);
     }
     
-    /* Navigation Bar */
-    .navbar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
+    /* Forms */
+    .auth-form {
         background: white;
+        padding: 2rem;
+        border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        padding: 0 2rem;
+    }
+    
+    /* Search Bar */
+    .search-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
     /* Category Pills */
@@ -81,40 +83,6 @@ CUSTOM_CSS = """
         background: #593CFB;
         color: white;
         border-color: #593CFB;
-    }
-    
-    /* Forms */
-    .auth-form {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Search Bar */
-    .search-container {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    /* Booking Summary */
-    .booking-summary {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Success Messages */
-    .success-message {
-        background-color: #DEF7EC;
-        color: #03543F;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1rem 0;
     }
     </style>
 """
