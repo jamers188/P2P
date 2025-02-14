@@ -23,42 +23,59 @@ class DBHandler:
                 json.dump([], f)
     
     def get_user(self, email):
-        with open(self.users_file, 'r') as f:
-            users = json.load(f)
-            return users.get(email)
+        try:
+            with open(self.users_file, 'r') as f:
+                users = json.load(f)
+                return users.get(email, {'name': 'User'})  # Default name if user not found
+        except:
+            return {'name': 'User'}  # Default if file not accessible
     
     def add_user(self, email, password, name, phone):
-        with open(self.users_file, 'r') as f:
-            users = json.load(f)
-        
-        users[email] = {
-            'password': password,  # In production, this should be hashed
-            'name': name,
-            'phone': phone,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        with open(self.users_file, 'w') as f:
-            json.dump(users, f)
+        try:
+            with open(self.users_file, 'r') as f:
+                users = json.load(f)
+            
+            users[email] = {
+                'password': password,  # In production, this should be hashed
+                'name': name,
+                'phone': phone,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            with open(self.users_file, 'w') as f:
+                json.dump(users, f)
+            return True
+        except:
+            return False
     
     def verify_login(self, email, password):
-        user = self.get_user(email)
-        if user and user['password'] == password:
-            return True
-        return False
+        try:
+            user = self.get_user(email)
+            if user and user.get('password') == password:  # In production, use proper password verification
+                return True
+            return False
+        except:
+            return False
     
     def add_booking(self, email, booking_details):
-        with open(self.bookings_file, 'r') as f:
-            bookings = json.load(f)
-        
-        booking_details['email'] = email
-        booking_details['booking_date'] = datetime.now().isoformat()
-        bookings.append(booking_details)
-        
-        with open(self.bookings_file, 'w') as f:
-            json.dump(bookings, f)
+        try:
+            with open(self.bookings_file, 'r') as f:
+                bookings = json.load(f)
+            
+            booking_details['email'] = email
+            booking_details['booking_date'] = datetime.now().isoformat()
+            bookings.append(booking_details)
+            
+            with open(self.bookings_file, 'w') as f:
+                json.dump(bookings, f)
+            return True
+        except:
+            return False
     
     def get_user_bookings(self, email):
-        with open(self.bookings_file, 'r') as f:
-            bookings = json.load(f)
-            return [b for b in bookings if b['email'] == email]
+        try:
+            with open(self.bookings_file, 'r') as f:
+                bookings = json.load(f)
+                return [b for b in bookings if b['email'] == email]
+        except:
+            return []
